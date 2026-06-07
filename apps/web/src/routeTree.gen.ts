@@ -15,7 +15,9 @@ import { Route as AuthIndexRouteImport } from './routes/_auth/index'
 import { Route as AuthWorkoutRouteImport } from './routes/_auth/workout'
 import { Route as AuthSettingsRouteImport } from './routes/_auth/settings'
 import { Route as AuthProgramsRouteImport } from './routes/_auth/programs'
+import { Route as AuthNutritionRouteImport } from './routes/_auth/nutrition'
 import { Route as AuthProgramsIndexRouteImport } from './routes/_auth/programs/index'
+import { Route as AuthNutritionIndexRouteImport } from './routes/_auth/nutrition/index'
 import { Route as AuthProgramsProgramIdRouteImport } from './routes/_auth/programs/$programId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -47,10 +49,20 @@ const AuthProgramsRoute = AuthProgramsRouteImport.update({
   path: '/programs',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AuthNutritionRoute = AuthNutritionRouteImport.update({
+  id: '/nutrition',
+  path: '/nutrition',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
 const AuthProgramsIndexRoute = AuthProgramsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthProgramsRoute,
+} as any)
+const AuthNutritionIndexRoute = AuthNutritionIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthNutritionRoute,
 } as any)
 const AuthProgramsProgramIdRoute = AuthProgramsProgramIdRouteImport.update({
   id: '/$programId',
@@ -61,10 +73,12 @@ const AuthProgramsProgramIdRoute = AuthProgramsProgramIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
   '/login': typeof LoginRoute
+  '/nutrition': typeof AuthNutritionRouteWithChildren
   '/programs': typeof AuthProgramsRouteWithChildren
   '/settings': typeof AuthSettingsRoute
   '/workout': typeof AuthWorkoutRoute
   '/programs/$programId': typeof AuthProgramsProgramIdRoute
+  '/nutrition/': typeof AuthNutritionIndexRoute
   '/programs/': typeof AuthProgramsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -73,17 +87,20 @@ export interface FileRoutesByTo {
   '/workout': typeof AuthWorkoutRoute
   '/': typeof AuthIndexRoute
   '/programs/$programId': typeof AuthProgramsProgramIdRoute
+  '/nutrition': typeof AuthNutritionIndexRoute
   '/programs': typeof AuthProgramsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/_auth/nutrition': typeof AuthNutritionRouteWithChildren
   '/_auth/programs': typeof AuthProgramsRouteWithChildren
   '/_auth/settings': typeof AuthSettingsRoute
   '/_auth/workout': typeof AuthWorkoutRoute
   '/_auth/': typeof AuthIndexRoute
   '/_auth/programs/$programId': typeof AuthProgramsProgramIdRoute
+  '/_auth/nutrition/': typeof AuthNutritionIndexRoute
   '/_auth/programs/': typeof AuthProgramsIndexRoute
 }
 export interface FileRouteTypes {
@@ -91,10 +108,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/nutrition'
     | '/programs'
     | '/settings'
     | '/workout'
     | '/programs/$programId'
+    | '/nutrition/'
     | '/programs/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -103,16 +122,19 @@ export interface FileRouteTypes {
     | '/workout'
     | '/'
     | '/programs/$programId'
+    | '/nutrition'
     | '/programs'
   id:
     | '__root__'
     | '/_auth'
     | '/login'
+    | '/_auth/nutrition'
     | '/_auth/programs'
     | '/_auth/settings'
     | '/_auth/workout'
     | '/_auth/'
     | '/_auth/programs/$programId'
+    | '/_auth/nutrition/'
     | '/_auth/programs/'
   fileRoutesById: FileRoutesById
 }
@@ -165,12 +187,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthProgramsRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/_auth/nutrition': {
+      id: '/_auth/nutrition'
+      path: '/nutrition'
+      fullPath: '/nutrition'
+      preLoaderRoute: typeof AuthNutritionRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     '/_auth/programs/': {
       id: '/_auth/programs/'
       path: '/'
       fullPath: '/programs/'
       preLoaderRoute: typeof AuthProgramsIndexRouteImport
       parentRoute: typeof AuthProgramsRoute
+    }
+    '/_auth/nutrition/': {
+      id: '/_auth/nutrition/'
+      path: '/'
+      fullPath: '/nutrition/'
+      preLoaderRoute: typeof AuthNutritionIndexRouteImport
+      parentRoute: typeof AuthNutritionRoute
     }
     '/_auth/programs/$programId': {
       id: '/_auth/programs/$programId'
@@ -181,6 +217,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthNutritionRouteChildren {
+  AuthNutritionIndexRoute: typeof AuthNutritionIndexRoute
+}
+
+const AuthNutritionRouteChildren: AuthNutritionRouteChildren = {
+  AuthNutritionIndexRoute: AuthNutritionIndexRoute,
+}
+
+const AuthNutritionRouteWithChildren = AuthNutritionRoute._addFileChildren(
+  AuthNutritionRouteChildren,
+)
 
 interface AuthProgramsRouteChildren {
   AuthProgramsProgramIdRoute: typeof AuthProgramsProgramIdRoute
@@ -197,6 +245,7 @@ const AuthProgramsRouteWithChildren = AuthProgramsRoute._addFileChildren(
 )
 
 interface AuthRouteRouteChildren {
+  AuthNutritionRoute: typeof AuthNutritionRouteWithChildren
   AuthProgramsRoute: typeof AuthProgramsRouteWithChildren
   AuthSettingsRoute: typeof AuthSettingsRoute
   AuthWorkoutRoute: typeof AuthWorkoutRoute
@@ -204,6 +253,7 @@ interface AuthRouteRouteChildren {
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
+  AuthNutritionRoute: AuthNutritionRouteWithChildren,
   AuthProgramsRoute: AuthProgramsRouteWithChildren,
   AuthSettingsRoute: AuthSettingsRoute,
   AuthWorkoutRoute: AuthWorkoutRoute,
