@@ -1,5 +1,5 @@
 import { Link, Outlet, createFileRoute, redirect, useRouterState } from "@tanstack/react-router";
-import { Apple, Dumbbell, Home, Settings, Zap } from "lucide-react";
+import { Activity, Apple, Dumbbell, Home, Settings, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
@@ -31,6 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Home", icon: Home, exact: true },
   { to: "/programs", label: "Programs", icon: Dumbbell, exact: false },
   { to: "/nutrition", label: "Nutrition", icon: Apple, exact: false },
+  { to: "/performance", label: "Progress", icon: Activity, exact: false },
   { to: "/workout", label: "Live", icon: Zap, exact: false },
   { to: "/settings", label: "Settings", icon: Settings, exact: false },
 ];

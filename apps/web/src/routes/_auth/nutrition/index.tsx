@@ -5,6 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Apple, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 
+import { AddFoodModal } from "@/components/AddFoodModal";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_auth/nutrition/")({
@@ -52,7 +53,7 @@ type Entry = {
 	quantity: number;
 	mealType: string;
 	food: FoodItem | null;
-	meal: ({ name: string; ingredients: Ingredient[] }) | null;
+	meal: { name: string; ingredients: Ingredient[] } | null;
 };
 
 type Macros = { calories: number; protein: number; carbs: number; fat: number };
@@ -107,9 +108,13 @@ function NutritionPage() {
 	const [selectedDate, setSelectedDate] = useState(todayISO);
 	const isToday = selectedDate === todayISO();
 
+	// Modal state: null = closed, {mealType} = open for that meal slot
+	const [addModal, setAddModal] = useState<{ mealType: MealType } | null>(null);
+
 	const { data: log, isPending } = useQuery(
 		trpc.nutrition.getDailyLog.queryOptions({ date: selectedDate }),
 	);
+	const { data: settings } = useQuery(trpc.user.getSettings.queryOptions());
 
 	const entries = (log?.entries ?? []) as Entry[];
 	const totals = sumMacros(entries);
@@ -117,6 +122,14 @@ function NutritionPage() {
 	function entriesForMeal(type: MealType) {
 		return entries.filter((e) => e.mealType === type);
 	}
+
+	// Clamp progress bar to 0-100%
+	function pct(val: number, target: number | null | undefined) {
+		if (!target) return null;
+		return Math.min(100, Math.round((val / target) * 100));
+	}
+
+	const calPct = pct(totals.calories, settings?.targetCalories);
 
 	return (
 		<div className="min-h-full bg-background">
@@ -158,19 +171,19 @@ function NutritionPage() {
 							Daily Summary
 						</CardTitle>
 					</CardHeader>
-					<CardContent>
+					<CardContent className="space-y-3">
 						{isPending ? (
 							<Skeleton className="h-16 w-full rounded-xl" />
 						) : (
 							<div className="grid grid-cols-4 gap-2">
 								{(
 									[
-										{ label: "Calories", value: Math.round(totals.calories), unit: "kcal" },
-										{ label: "Protein", value: Math.round(totals.protein), unit: "g" },
-										{ label: "Carbs", value: Math.round(totals.carbs), unit: "g" },
-										{ label: "Fat", value: Math.round(totals.fat), unit: "g" },
+										{ label: "Calories", value: Math.round(totals.calories), unit: "kcal", target: settings?.targetCalories },
+										{ label: "Protein", value: Math.round(totals.protein), unit: "g", target: settings?.targetProtein },
+										{ label: "Carbs", value: Math.round(totals.carbs), unit: "g", target: settings?.targetCarbs },
+										{ label: "Fat", value: Math.round(totals.fat), unit: "g", target: settings?.targetFat },
 									] as const
-								).map(({ label, value, unit }) => (
+								).map(({ label, value, unit, target }) => (
 									<div
 										key={label}
 										className="flex flex-col items-center rounded-xl bg-muted/50 py-3"
@@ -182,8 +195,29 @@ function NutritionPage() {
 										<span className="text-[10px] font-medium text-muted-foreground/70">
 											{label}
 										</span>
+										{target ? (
+											<span className="mt-0.5 text-[9px] tabular-nums text-muted-foreground/50">
+												/ {Math.round(target)}
+											</span>
+										) : null}
 									</div>
 								))}
+							</div>
+						)}
+
+						{/* Calorie progress bar when target is set */}
+						{calPct !== null && (
+							<div className="space-y-1">
+								<div className="flex justify-between text-[10px] text-muted-foreground">
+									<span>{Math.round(totals.calories)} kcal consumed</span>
+									<span>{calPct}% of goal</span>
+								</div>
+								<div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+									<div
+										className="h-full rounded-full bg-orange-500 transition-all"
+										style={{ width: `${calPct}%` }}
+									/>
+								</div>
 							</div>
 						)}
 					</CardContent>
@@ -209,7 +243,8 @@ function NutritionPage() {
 									</div>
 									<button
 										type="button"
-										className="flex h-7 items-center gap-1 rounded-full border border-border px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground active:scale-95"
+										onClick={() => setAddModal({ mealType })}
+										className="flex h-7 items-center gap-1 rounded-full border border-border px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-orange-500/40 hover:text-orange-400 active:scale-95"
 									>
 										<Plus className="h-3 w-3" />
 										Add Food
@@ -225,8 +260,7 @@ function NutritionPage() {
 									<div className="divide-y divide-border/30">
 										{mealEntries.map((entry) => {
 											const macros = entryMacros(entry);
-											const name =
-												entry.food?.name ?? entry.meal?.name ?? "Unknown";
+											const name = entry.food?.name ?? entry.meal?.name ?? "Unknown";
 											const serving = entry.food?.servingSize
 												? `${entry.quantity} × ${entry.food.servingSize}`
 												: `${entry.quantity} serving${entry.quantity === 1 ? "" : "s"}`;
@@ -258,6 +292,16 @@ function NutritionPage() {
 					);
 				})}
 			</div>
+
+			{/* Add Food bottom sheet modal */}
+			{addModal && (
+				<AddFoodModal
+					open
+					date={selectedDate}
+					mealType={addModal.mealType}
+					onClose={() => setAddModal(null)}
+				/>
+			)}
 		</div>
 	);
 }

@@ -15,9 +15,12 @@ import { Route as AuthIndexRouteImport } from './routes/_auth/index'
 import { Route as AuthWorkoutRouteImport } from './routes/_auth/workout'
 import { Route as AuthSettingsRouteImport } from './routes/_auth/settings'
 import { Route as AuthProgramsRouteImport } from './routes/_auth/programs'
+import { Route as AuthPerformanceRouteImport } from './routes/_auth/performance'
 import { Route as AuthNutritionRouteImport } from './routes/_auth/nutrition'
+import { Route as AuthSettingsIndexRouteImport } from './routes/_auth/settings/index'
 import { Route as AuthProgramsIndexRouteImport } from './routes/_auth/programs/index'
 import { Route as AuthNutritionIndexRouteImport } from './routes/_auth/nutrition/index'
+import { Route as AuthSettingsAccountRouteImport } from './routes/_auth/settings/account'
 import { Route as AuthProgramsProgramIdRouteImport } from './routes/_auth/programs/$programId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -49,10 +52,20 @@ const AuthProgramsRoute = AuthProgramsRouteImport.update({
   path: '/programs',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AuthPerformanceRoute = AuthPerformanceRouteImport.update({
+  id: '/performance',
+  path: '/performance',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
 const AuthNutritionRoute = AuthNutritionRouteImport.update({
   id: '/nutrition',
   path: '/nutrition',
   getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthSettingsIndexRoute = AuthSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthSettingsRoute,
 } as any)
 const AuthProgramsIndexRoute = AuthProgramsIndexRouteImport.update({
   id: '/',
@@ -64,6 +77,11 @@ const AuthNutritionIndexRoute = AuthNutritionIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthNutritionRoute,
 } as any)
+const AuthSettingsAccountRoute = AuthSettingsAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AuthSettingsRoute,
+} as any)
 const AuthProgramsProgramIdRoute = AuthProgramsProgramIdRouteImport.update({
   id: '/$programId',
   path: '/$programId',
@@ -74,34 +92,42 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
   '/login': typeof LoginRoute
   '/nutrition': typeof AuthNutritionRouteWithChildren
+  '/performance': typeof AuthPerformanceRoute
   '/programs': typeof AuthProgramsRouteWithChildren
-  '/settings': typeof AuthSettingsRoute
+  '/settings': typeof AuthSettingsRouteWithChildren
   '/workout': typeof AuthWorkoutRoute
   '/programs/$programId': typeof AuthProgramsProgramIdRoute
+  '/settings/account': typeof AuthSettingsAccountRoute
   '/nutrition/': typeof AuthNutritionIndexRoute
   '/programs/': typeof AuthProgramsIndexRoute
+  '/settings/': typeof AuthSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/settings': typeof AuthSettingsRoute
+  '/performance': typeof AuthPerformanceRoute
   '/workout': typeof AuthWorkoutRoute
   '/': typeof AuthIndexRoute
   '/programs/$programId': typeof AuthProgramsProgramIdRoute
+  '/settings/account': typeof AuthSettingsAccountRoute
   '/nutrition': typeof AuthNutritionIndexRoute
   '/programs': typeof AuthProgramsIndexRoute
+  '/settings': typeof AuthSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/_auth/nutrition': typeof AuthNutritionRouteWithChildren
+  '/_auth/performance': typeof AuthPerformanceRoute
   '/_auth/programs': typeof AuthProgramsRouteWithChildren
-  '/_auth/settings': typeof AuthSettingsRoute
+  '/_auth/settings': typeof AuthSettingsRouteWithChildren
   '/_auth/workout': typeof AuthWorkoutRoute
   '/_auth/': typeof AuthIndexRoute
   '/_auth/programs/$programId': typeof AuthProgramsProgramIdRoute
+  '/_auth/settings/account': typeof AuthSettingsAccountRoute
   '/_auth/nutrition/': typeof AuthNutritionIndexRoute
   '/_auth/programs/': typeof AuthProgramsIndexRoute
+  '/_auth/settings/': typeof AuthSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -109,33 +135,41 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/nutrition'
+    | '/performance'
     | '/programs'
     | '/settings'
     | '/workout'
     | '/programs/$programId'
+    | '/settings/account'
     | '/nutrition/'
     | '/programs/'
+    | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
-    | '/settings'
+    | '/performance'
     | '/workout'
     | '/'
     | '/programs/$programId'
+    | '/settings/account'
     | '/nutrition'
     | '/programs'
+    | '/settings'
   id:
     | '__root__'
     | '/_auth'
     | '/login'
     | '/_auth/nutrition'
+    | '/_auth/performance'
     | '/_auth/programs'
     | '/_auth/settings'
     | '/_auth/workout'
     | '/_auth/'
     | '/_auth/programs/$programId'
+    | '/_auth/settings/account'
     | '/_auth/nutrition/'
     | '/_auth/programs/'
+    | '/_auth/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -187,12 +221,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthProgramsRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/_auth/performance': {
+      id: '/_auth/performance'
+      path: '/performance'
+      fullPath: '/performance'
+      preLoaderRoute: typeof AuthPerformanceRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     '/_auth/nutrition': {
       id: '/_auth/nutrition'
       path: '/nutrition'
       fullPath: '/nutrition'
       preLoaderRoute: typeof AuthNutritionRouteImport
       parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/settings/': {
+      id: '/_auth/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AuthSettingsIndexRouteImport
+      parentRoute: typeof AuthSettingsRoute
     }
     '/_auth/programs/': {
       id: '/_auth/programs/'
@@ -207,6 +255,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/nutrition/'
       preLoaderRoute: typeof AuthNutritionIndexRouteImport
       parentRoute: typeof AuthNutritionRoute
+    }
+    '/_auth/settings/account': {
+      id: '/_auth/settings/account'
+      path: '/account'
+      fullPath: '/settings/account'
+      preLoaderRoute: typeof AuthSettingsAccountRouteImport
+      parentRoute: typeof AuthSettingsRoute
     }
     '/_auth/programs/$programId': {
       id: '/_auth/programs/$programId'
@@ -244,18 +299,34 @@ const AuthProgramsRouteWithChildren = AuthProgramsRoute._addFileChildren(
   AuthProgramsRouteChildren,
 )
 
+interface AuthSettingsRouteChildren {
+  AuthSettingsAccountRoute: typeof AuthSettingsAccountRoute
+  AuthSettingsIndexRoute: typeof AuthSettingsIndexRoute
+}
+
+const AuthSettingsRouteChildren: AuthSettingsRouteChildren = {
+  AuthSettingsAccountRoute: AuthSettingsAccountRoute,
+  AuthSettingsIndexRoute: AuthSettingsIndexRoute,
+}
+
+const AuthSettingsRouteWithChildren = AuthSettingsRoute._addFileChildren(
+  AuthSettingsRouteChildren,
+)
+
 interface AuthRouteRouteChildren {
   AuthNutritionRoute: typeof AuthNutritionRouteWithChildren
+  AuthPerformanceRoute: typeof AuthPerformanceRoute
   AuthProgramsRoute: typeof AuthProgramsRouteWithChildren
-  AuthSettingsRoute: typeof AuthSettingsRoute
+  AuthSettingsRoute: typeof AuthSettingsRouteWithChildren
   AuthWorkoutRoute: typeof AuthWorkoutRoute
   AuthIndexRoute: typeof AuthIndexRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
   AuthNutritionRoute: AuthNutritionRouteWithChildren,
+  AuthPerformanceRoute: AuthPerformanceRoute,
   AuthProgramsRoute: AuthProgramsRouteWithChildren,
-  AuthSettingsRoute: AuthSettingsRoute,
+  AuthSettingsRoute: AuthSettingsRouteWithChildren,
   AuthWorkoutRoute: AuthWorkoutRoute,
   AuthIndexRoute: AuthIndexRoute,
 }
