@@ -1,10 +1,7 @@
 import { Toaster } from "@fitness-app/ui/components/sonner";
 import type { QueryClient } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { HeadContent, Outlet, createRootRouteWithContext } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
-import Header from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
 import type { trpc } from "@/utils/trpc";
 
@@ -19,20 +16,12 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
   head: () => ({
     meta: [
-      {
-        title: "fitness-app",
-      },
-      {
-        name: "description",
-        content: "fitness-app is a web application",
-      },
+      { title: "GymTracker" },
+      { name: "description", content: "Your personal gym companion" },
+      { name: "theme-color", content: "#09090b" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
     ],
-    links: [
-      {
-        rel: "icon",
-        href: "/favicon.ico",
-      },
-    ],
+    links: [{ rel: "icon", href: "/favicon.ico" }],
   }),
 });
 
@@ -44,16 +33,11 @@ function RootComponent() {
         attribute="class"
         defaultTheme="dark"
         disableTransitionOnChange
-        storageKey="vite-ui-theme"
+        storageKey="gymtracker-theme"
       >
-        <div className="grid grid-rows-[auto_1fr] h-svh">
-          <Header />
-          <Outlet />
-        </div>
-        <Toaster richColors />
+        <Outlet />
+        <Toaster richColors position="top-center" />
       </ThemeProvider>
-      <TanStackRouterDevtools position="bottom-left" />
-      <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
     </>
   );
 }

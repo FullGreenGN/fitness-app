@@ -17,10 +17,12 @@
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "dotenv": "catalog:",
+    "drizzle-orm": "^0.45.2",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@fitness-app/config": "workspace:*",
+    "@types/pg": "^8.20.0",
     "hono": "catalog:",
     "typescript": "catalog:"
   }

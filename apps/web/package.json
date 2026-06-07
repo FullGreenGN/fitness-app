@@ -16,6 +16,7 @@
     "@fitness-app/env": "workspace:*",
     "@fitness-app/ui": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
+    "@supabase/supabase-js": "^2.107.0",
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-form": "^1.28.0",
     "@tanstack/react-query": "^5.90.12",
@@ -28,10 +29,13 @@
     "lucide-react": "^1.8.0",
     "next-themes": "catalog:",
     "react": "catalog:",
+    "react-body-highlighter": "^2.0.5",
     "react-dom": "catalog:",
+    "recharts": "^3.8.1",
     "sonner": "^2.0.7",
     "vite-plugin-pwa": "^1.2.0",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@fitness-app/config": "workspace:*",

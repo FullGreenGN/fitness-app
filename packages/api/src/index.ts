@@ -1,4 +1,4 @@
-import { initTRPC, TRPCError } from "@trpc/server";
+import { TRPCError, initTRPC } from "@trpc/server";
 
 import type { Context } from "./context";
 
@@ -20,6 +20,8 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
     ctx: {
       ...ctx,
       session: ctx.session,
+      // Convenience shortcut so procedures can use ctx.user.id directly
+      user: ctx.session.user,
     },
   });
 });
