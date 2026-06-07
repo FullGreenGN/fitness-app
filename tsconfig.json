@@ -1,0 +1,3 @@
+{
+  "extends": "@fitness-app/config/tsconfig.base.json"
+}

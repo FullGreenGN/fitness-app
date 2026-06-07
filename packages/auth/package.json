@@ -1,0 +1,24 @@
+{
+  "name": "@fitness-app/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@fitness-app/db": "workspace:*",
+    "@fitness-app/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@fitness-app/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
