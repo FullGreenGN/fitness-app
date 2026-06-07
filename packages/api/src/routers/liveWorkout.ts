@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@fitness-app/db";
@@ -142,4 +142,33 @@ export const liveWorkoutRouter = router({
 
       return { deleted: input.setId };
     }),
+
+  /**
+   * Returns the workout that has sets logged within the last 12 hours,
+   * so the home screen can offer a "Continue Workout" shortcut.
+   */
+  currentWorkout: protectedProcedure.query(async ({ ctx }) => {
+    const rows = await db
+      .select({
+        workoutId: workouts.id,
+        workoutName: workouts.name,
+        programName: programs.name,
+      })
+      .from(sets)
+      .innerJoin(exercises, eq(sets.exerciseId, exercises.id))
+      .innerJoin(workouts, eq(exercises.workoutId, workouts.id))
+      .innerJoin(programs, eq(workouts.programId, programs.id))
+      .where(
+        and(
+          eq(programs.userId, ctx.user.id),
+          isNotNull(sets.completedAt),
+          sql`${sets.completedAt} >= NOW() - INTERVAL '12 hours'`,
+        ),
+      )
+      .groupBy(workouts.id, workouts.name, programs.name)
+      .orderBy(sql`MAX(${sets.completedAt}) DESC`)
+      .limit(1);
+
+    return rows[0] ?? null;
+  }),
 });

@@ -3,6 +3,7 @@ import { publicProcedure, protectedProcedure, router } from "../index";
 import { exerciseDictionaryRouter } from "./exercise_dictionary";
 import { liveWorkoutRouter } from "./liveWorkout";
 import { programsRouter } from "./programs";
+import { statsRouter } from "./stats";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
@@ -17,6 +18,7 @@ export const appRouter = router({
   programs: programsRouter,
   liveWorkout: liveWorkoutRouter,
   exerciseDictionary: exerciseDictionaryRouter,
+  stats: statsRouter,
 });
 
 export type AppRouter = typeof appRouter;

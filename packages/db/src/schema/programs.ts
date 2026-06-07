@@ -11,6 +11,7 @@ export const programs = pgTable("programs", {
         .references(() => user.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
+    shareCode: text("share_code").unique(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

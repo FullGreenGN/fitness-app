@@ -2,8 +2,8 @@ import { Button } from "@fitness-app/ui/components/button";
 import { Input } from "@fitness-app/ui/components/input";
 import { Skeleton } from "@fitness-app/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { Check, Dumbbell, Flame, Plus, X } from "lucide-react";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Check, Dumbbell, Flame, Plus, Trophy, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -33,10 +33,48 @@ function useTimer() {
 
 // ─── Page shell ───────────────────────────────────────────────────────────────
 
+function getFinishedWorkouts(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem("finishedWorkouts") ?? "[]"));
+  } catch {
+    return new Set();
+  }
+}
+
+function markWorkoutFinished(workoutId: string) {
+  try {
+    const ids = Array.from(getFinishedWorkouts());
+    ids.push(workoutId);
+    // Keep only the last 50 to avoid unbounded growth
+    localStorage.setItem("finishedWorkouts", JSON.stringify(ids.slice(-50)));
+  } catch {}
+}
+
 function WorkoutPage() {
   const { workoutId } = Route.useSearch();
+  const navigate = useNavigate();
+
+  const { data: current, isPending: currentPending } = useQuery(
+    trpc.liveWorkout.currentWorkout.queryOptions(),
+  );
+
+  // Auto-resume: redirect to the active workout if none is selected
+  useEffect(() => {
+    if (workoutId) return;
+    if (!current) return;
+    if (getFinishedWorkouts().has(current.workoutId)) return;
+    navigate({ to: "/workout", search: { workoutId: current.workoutId }, replace: true });
+  }, [workoutId, current, navigate]);
 
   if (!workoutId) {
+    if (currentPending) {
+      return (
+        <div className="space-y-4 p-4">
+          <Skeleton className="h-[72px] w-full rounded-2xl" />
+          <Skeleton className="h-[200px] w-full rounded-2xl" />
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-center justify-center gap-4 px-8 py-20 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
@@ -71,18 +109,25 @@ interface PendingSet {
 // ─── Session component (always has a workoutId) ───────────────────────────────
 
 function WorkoutSession({ workoutId }: { workoutId: string }) {
+  const navigate = useNavigate();
   const { data: workout, isPending } = useQuery(
     trpc.liveWorkout.getWorkout.queryOptions({ workoutId }),
   );
 
   const [pending, setPending] = useState<Record<string, PendingSet[]>>({});
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
+  const [showFinish, setShowFinish] = useState(false);
 
-  // Seed one empty pending set per exercise when workout first loads
+  // Seed pending sets on load: fill up to targetSets, at least 1
   useEffect(() => {
     if (!workout) return;
     setPending(
-      Object.fromEntries(workout.exercises.map((ex) => [ex.id, [{ weight: "", reps: "" }]])),
+      Object.fromEntries(
+        workout.exercises.map((ex) => {
+          const remaining = Math.max(1, ex.targetSets - ex.sets.length);
+          return [ex.id, Array.from({ length: remaining }, () => ({ weight: "", reps: "" }))];
+        }),
+      ),
     );
   }, [workout?.id]);
 
@@ -190,7 +235,11 @@ function WorkoutSession({ workoutId }: { workoutId: string }) {
               </span>
             </div>
           </div>
-          <Button size="sm" className="mt-0.5 rounded-full px-4 text-xs font-semibold">
+          <Button
+            size="sm"
+            className="mt-0.5 rounded-full px-4 text-xs font-semibold"
+            onClick={() => setShowFinish(true)}
+          >
             <Flame className="mr-1 h-3.5 w-3.5" />
             Finish
           </Button>
@@ -234,6 +283,58 @@ function WorkoutSession({ workoutId }: { workoutId: string }) {
         open={addExerciseOpen}
         onClose={() => setAddExerciseOpen(false)}
       />
+
+      {/* ── Finish confirmation sheet ──────────────────────────────────────── */}
+      {showFinish && (
+        <>
+          <div
+            className="fixed inset-0 z-[60] bg-background/70 backdrop-blur-sm"
+            onClick={() => setShowFinish(false)}
+          />
+          <div className="fixed inset-x-0 bottom-0 z-[61] rounded-t-3xl border-t border-border bg-card p-6 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <p className="text-sm font-bold">Finish Workout?</p>
+              <button
+                type="button"
+                onClick={() => setShowFinish(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Summary */}
+            <div className="mb-5 grid grid-cols-3 gap-3">
+              <div className="flex flex-col items-center justify-center rounded-2xl bg-muted py-4">
+                <span className="text-2xl font-bold tabular-nums">{loggedSetsTotal}</span>
+                <span className="mt-0.5 text-[10px] text-muted-foreground">Sets</span>
+              </div>
+              <div className="flex flex-col items-center justify-center rounded-2xl bg-muted py-4">
+                <span className="text-2xl font-bold tabular-nums">
+                  {workout.exercises.filter((ex) => ex.sets.length > 0).length}
+                </span>
+                <span className="mt-0.5 text-[10px] text-muted-foreground">Exercises</span>
+              </div>
+              <div className="flex flex-col items-center justify-center rounded-2xl bg-muted py-4">
+                <span className="text-2xl font-bold tabular-nums">{elapsed}</span>
+                <span className="mt-0.5 text-[10px] text-muted-foreground">Time</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                markWorkoutFinished(workoutId);
+                navigate({ to: "/" });
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-sm font-semibold text-background transition-transform active:scale-[0.98]"
+            >
+              <Trophy className="h-4 w-4" />
+              Finish Workout
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -248,6 +349,8 @@ interface DbSet {
 
 interface DbExercise {
   id: string;
+  targetSets: number;
+  targetReps: number;
   dictionary: {
     name: string;
     imageUrl: string | null;

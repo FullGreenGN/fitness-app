@@ -2,7 +2,7 @@ import { Card, CardContent } from "@fitness-app/ui/components/card";
 import { Skeleton } from "@fitness-app/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, Dumbbell, Plus, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, CirclePlay, Dumbbell, Play, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -172,6 +172,7 @@ interface WorkoutCardProps {
         name: string;
         targetMuscle: string | null;
         imageUrl: string | null;
+        youtubeUrl: string | null;
       } | null;
     }>;
   };
@@ -179,6 +180,17 @@ interface WorkoutCardProps {
 }
 
 function WorkoutCard({ workout, onAddExercise }: WorkoutCardProps) {
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+
+  function toggle(id: string) {
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   return (
     <Card className="overflow-hidden rounded-2xl ring-1 ring-border">
       <CardContent className="p-0">
@@ -190,52 +202,100 @@ function WorkoutCard({ workout, onAddExercise }: WorkoutCardProps) {
               <p className="mt-0.5 text-xs text-muted-foreground">{workout.notes}</p>
             )}
           </div>
-          <span className="text-xs text-muted-foreground">
-            {workout.exercises.length} exercise{workout.exercises.length === 1 ? "" : "s"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {workout.exercises.length} exercise{workout.exercises.length === 1 ? "" : "s"}
+            </span>
+            <Link
+              to="/workout"
+              search={{ workoutId: workout.id }}
+              className="flex h-7 items-center gap-1 rounded-full bg-foreground px-3 text-[11px] font-bold text-background transition-transform active:scale-95"
+            >
+              <Play className="h-3 w-3 fill-background" strokeWidth={0} />
+              Start
+            </Link>
+          </div>
         </div>
 
-        {/* Exercise rows */}
+        {/* Exercise rows — accordion */}
         {workout.exercises.length > 0 && (
           <div className="divide-y divide-border/40">
-            {workout.exercises.map((exercise, idx) => (
-              <div key={exercise.id} className="flex items-center gap-3 px-4 py-3">
-                {/* Thumbnail or placeholder */}
-                {exercise.dictionary?.imageUrl ? (
-                  <img
-                    src={exercise.dictionary.imageUrl}
-                    alt={exercise.dictionary.name}
-                    className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-bold text-muted-foreground">
-                    {idx + 1}
-                  </div>
-                )}
+            {workout.exercises.map((exercise, idx) => {
+              const isOpen = openIds.has(exercise.id);
+              const dict = exercise.dictionary;
+              return (
+                <div key={exercise.id}>
+                  {/* Header row */}
+                  <button
+                    type="button"
+                    onClick={() => toggle(exercise.id)}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                  >
+                    {dict?.imageUrl ? (
+                      <img
+                        src={dict.imageUrl}
+                        alt={dict.name}
+                        className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-bold text-muted-foreground">
+                        {idx + 1}
+                      </div>
+                    )}
 
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">
-                    {exercise.dictionary?.name ?? "Unknown exercise"}
-                  </p>
-                  {exercise.dictionary?.targetMuscle && (
-                    <p className="mt-0.5 truncate text-xs capitalize text-muted-foreground">
-                      {exercise.dictionary.targetMuscle}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">
+                        {dict?.name ?? "Unknown exercise"}
+                      </p>
+                      {dict?.targetMuscle && (
+                        <p className="mt-0.5 truncate text-xs capitalize text-muted-foreground">
+                          {dict.targetMuscle}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="shrink-0 rounded-lg bg-muted px-2.5 py-1 text-center">
+                      <span className="text-xs font-bold tabular-nums">{exercise.targetSets}</span>
+                      <span className="text-[10px] text-muted-foreground"> × </span>
+                      <span className="text-xs font-bold tabular-nums">{exercise.targetReps}</span>
+                    </div>
+
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+
+                  {/* Expanded panel */}
+                  {isOpen && (
+                    <div className="space-y-3 px-4 pb-4">
+                      {dict?.imageUrl && (
+                        <img
+                          src={dict.imageUrl}
+                          alt={dict.name}
+                          className="h-44 w-full rounded-xl object-cover"
+                        />
+                      )}
+                      {dict?.youtubeUrl && (
+                        <a
+                          href={dict.youtubeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex w-full items-center justify-center gap-2 rounded-xl border border-border py-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-red-500/60 hover:text-red-400 active:scale-[0.98]"
+                        >
+                          <CirclePlay className="h-4 w-4" />
+                          Watch Tutorial on YouTube
+                        </a>
+                      )}
+                      {!dict?.imageUrl && !dict?.youtubeUrl && (
+                        <p className="text-center text-xs text-muted-foreground/40">
+                          No media available
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
-
-                {/* Target sets × reps badge */}
-                <div className="shrink-0 rounded-lg bg-muted px-2.5 py-1 text-center">
-                  <span className="text-xs font-bold tabular-nums">
-                    {exercise.targetSets}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground"> × </span>
-                  <span className="text-xs font-bold tabular-nums">
-                    {exercise.targetReps}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

@@ -33,6 +33,7 @@
     "db:studio": "turbo -F @fitness-app/db db:studio",
     "db:generate": "turbo -F @fitness-app/db db:generate",
     "db:migrate": "turbo -F @fitness-app/db db:migrate",
+    "db:seed": "turbo -F @fitness-app/db db:seed",
     "check": "biome check --write ."
   },
   "dependencies": {
