@@ -144,6 +144,36 @@ export const liveWorkoutRouter = router({
     }),
 
   /**
+   * Insert a set for a past session with a specific date. The completedAt
+   * timestamp is pinned to noon UTC on the given date so the history query
+   * (which groups by DATE(completedAt)) always lands on the correct day.
+   */
+  addHistoricalSet: protectedProcedure
+    .input(
+      z.object({
+        exerciseId: z.string().uuid(),
+        weight: z.number().min(0),
+        reps: z.number().int().min(1),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertExerciseOwnership(input.exerciseId, ctx.user.id);
+
+      const [set] = await db
+        .insert(sets)
+        .values({
+          exerciseId: input.exerciseId,
+          weight: input.weight,
+          reps: input.reps,
+          completedAt: new Date(`${input.date}T12:00:00.000Z`),
+        })
+        .returning();
+
+      return set;
+    }),
+
+  /**
    * Returns the workout that has sets logged within the last 12 hours,
    * so the home screen can offer a "Continue Workout" shortcut.
    */

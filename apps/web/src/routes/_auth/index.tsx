@@ -298,8 +298,8 @@ function DashboardPage() {
             {history.map((session) => (
               <Link
                 key={`${session.workoutId}-${session.date}`}
-                to="/workout"
-                search={{ workoutId: session.workoutId }}
+                to="/history"
+                search={{ workoutId: session.workoutId, date: session.date }}
               >
                 <Card className="rounded-2xl ring-1 ring-border transition-transform active:scale-[0.99]">
                   <CardContent className="flex items-center gap-3 py-3.5">

@@ -1,4 +1,6 @@
-import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
+import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { z } from "zod";
 
 import { db } from "@fitness-app/db";
 import { exercises } from "@fitness-app/db/schema/exercises";
@@ -41,6 +43,71 @@ export const statsRouter = router({
 
 		return rows;
 	}),
+
+	/**
+	 * Returns all exercises + their sets for a specific workout on a specific date.
+	 * Used by the session history detail page to allow full CRUD on past sets.
+	 */
+	getSessionDetail: protectedProcedure
+		.input(
+			z.object({
+				workoutId: z.string().uuid(),
+				date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const workout = await db.query.workouts.findFirst({
+				where: eq(workouts.id, input.workoutId),
+				columns: { id: true, name: true },
+				with: {
+					program: { columns: { userId: true } },
+					exercises: {
+						orderBy: (ex, { asc }) => [asc(ex.orderIndex)],
+						columns: { id: true },
+						with: { dictionary: { columns: { name: true } } },
+					},
+				},
+			});
+
+			if (!workout || workout.program.userId !== ctx.user.id) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+			}
+
+			const exerciseIds = workout.exercises.map((ex) => ex.id);
+			if (exerciseIds.length === 0) {
+				return { workoutName: workout.name, exercises: [] };
+			}
+
+			const sessionSets = await db
+				.select()
+				.from(sets)
+				.where(
+					and(
+						inArray(sets.exerciseId, exerciseIds),
+						sql`DATE(${sets.completedAt}) = ${input.date}::date`,
+					),
+				)
+				.orderBy(asc(sets.completedAt));
+
+			// Group sets by exerciseId for easy lookup
+			const setsByExercise = new Map<string, typeof sessionSets>();
+			for (const s of sessionSets) {
+				const arr = setsByExercise.get(s.exerciseId) ?? [];
+				arr.push(s);
+				setsByExercise.set(s.exerciseId, arr);
+			}
+
+			return {
+				workoutName: workout.name,
+				exercises: workout.exercises
+					.map((ex) => ({
+						id: ex.id,
+						name: ex.dictionary.name,
+						sets: setsByExercise.get(ex.id) ?? [],
+					}))
+					.filter((ex) => ex.sets.length > 0),
+			};
+		}),
 
 	/**
 	 * Returns daily training volume (kg × reps) for the last 30 days.

@@ -17,9 +17,13 @@ import { Route as AuthSettingsRouteImport } from './routes/_auth/settings'
 import { Route as AuthProgramsRouteImport } from './routes/_auth/programs'
 import { Route as AuthPerformanceRouteImport } from './routes/_auth/performance'
 import { Route as AuthNutritionRouteImport } from './routes/_auth/nutrition'
+import { Route as AuthHistoryRouteImport } from './routes/_auth/history'
 import { Route as AuthSettingsIndexRouteImport } from './routes/_auth/settings/index'
 import { Route as AuthProgramsIndexRouteImport } from './routes/_auth/programs/index'
 import { Route as AuthNutritionIndexRouteImport } from './routes/_auth/nutrition/index'
+import { Route as AuthSettingsProfileRouteImport } from './routes/_auth/settings/profile'
+import { Route as AuthSettingsPrivacyRouteImport } from './routes/_auth/settings/privacy'
+import { Route as AuthSettingsNotificationsRouteImport } from './routes/_auth/settings/notifications'
 import { Route as AuthSettingsAccountRouteImport } from './routes/_auth/settings/account'
 import { Route as AuthProgramsProgramIdRouteImport } from './routes/_auth/programs/$programId'
 
@@ -62,6 +66,11 @@ const AuthNutritionRoute = AuthNutritionRouteImport.update({
   path: '/nutrition',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AuthHistoryRoute = AuthHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
 const AuthSettingsIndexRoute = AuthSettingsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -77,6 +86,22 @@ const AuthNutritionIndexRoute = AuthNutritionIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthNutritionRoute,
 } as any)
+const AuthSettingsProfileRoute = AuthSettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthSettingsRoute,
+} as any)
+const AuthSettingsPrivacyRoute = AuthSettingsPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => AuthSettingsRoute,
+} as any)
+const AuthSettingsNotificationsRoute =
+  AuthSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthSettingsRoute,
+  } as any)
 const AuthSettingsAccountRoute = AuthSettingsAccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -91,6 +116,7 @@ const AuthProgramsProgramIdRoute = AuthProgramsProgramIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
   '/login': typeof LoginRoute
+  '/history': typeof AuthHistoryRoute
   '/nutrition': typeof AuthNutritionRouteWithChildren
   '/performance': typeof AuthPerformanceRoute
   '/programs': typeof AuthProgramsRouteWithChildren
@@ -98,17 +124,24 @@ export interface FileRoutesByFullPath {
   '/workout': typeof AuthWorkoutRoute
   '/programs/$programId': typeof AuthProgramsProgramIdRoute
   '/settings/account': typeof AuthSettingsAccountRoute
+  '/settings/notifications': typeof AuthSettingsNotificationsRoute
+  '/settings/privacy': typeof AuthSettingsPrivacyRoute
+  '/settings/profile': typeof AuthSettingsProfileRoute
   '/nutrition/': typeof AuthNutritionIndexRoute
   '/programs/': typeof AuthProgramsIndexRoute
   '/settings/': typeof AuthSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/history': typeof AuthHistoryRoute
   '/performance': typeof AuthPerformanceRoute
   '/workout': typeof AuthWorkoutRoute
   '/': typeof AuthIndexRoute
   '/programs/$programId': typeof AuthProgramsProgramIdRoute
   '/settings/account': typeof AuthSettingsAccountRoute
+  '/settings/notifications': typeof AuthSettingsNotificationsRoute
+  '/settings/privacy': typeof AuthSettingsPrivacyRoute
+  '/settings/profile': typeof AuthSettingsProfileRoute
   '/nutrition': typeof AuthNutritionIndexRoute
   '/programs': typeof AuthProgramsIndexRoute
   '/settings': typeof AuthSettingsIndexRoute
@@ -117,6 +150,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/_auth/history': typeof AuthHistoryRoute
   '/_auth/nutrition': typeof AuthNutritionRouteWithChildren
   '/_auth/performance': typeof AuthPerformanceRoute
   '/_auth/programs': typeof AuthProgramsRouteWithChildren
@@ -125,6 +159,9 @@ export interface FileRoutesById {
   '/_auth/': typeof AuthIndexRoute
   '/_auth/programs/$programId': typeof AuthProgramsProgramIdRoute
   '/_auth/settings/account': typeof AuthSettingsAccountRoute
+  '/_auth/settings/notifications': typeof AuthSettingsNotificationsRoute
+  '/_auth/settings/privacy': typeof AuthSettingsPrivacyRoute
+  '/_auth/settings/profile': typeof AuthSettingsProfileRoute
   '/_auth/nutrition/': typeof AuthNutritionIndexRoute
   '/_auth/programs/': typeof AuthProgramsIndexRoute
   '/_auth/settings/': typeof AuthSettingsIndexRoute
@@ -134,6 +171,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/history'
     | '/nutrition'
     | '/performance'
     | '/programs'
@@ -141,17 +179,24 @@ export interface FileRouteTypes {
     | '/workout'
     | '/programs/$programId'
     | '/settings/account'
+    | '/settings/notifications'
+    | '/settings/privacy'
+    | '/settings/profile'
     | '/nutrition/'
     | '/programs/'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/history'
     | '/performance'
     | '/workout'
     | '/'
     | '/programs/$programId'
     | '/settings/account'
+    | '/settings/notifications'
+    | '/settings/privacy'
+    | '/settings/profile'
     | '/nutrition'
     | '/programs'
     | '/settings'
@@ -159,6 +204,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_auth'
     | '/login'
+    | '/_auth/history'
     | '/_auth/nutrition'
     | '/_auth/performance'
     | '/_auth/programs'
@@ -167,6 +213,9 @@ export interface FileRouteTypes {
     | '/_auth/'
     | '/_auth/programs/$programId'
     | '/_auth/settings/account'
+    | '/_auth/settings/notifications'
+    | '/_auth/settings/privacy'
+    | '/_auth/settings/profile'
     | '/_auth/nutrition/'
     | '/_auth/programs/'
     | '/_auth/settings/'
@@ -235,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthNutritionRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/_auth/history': {
+      id: '/_auth/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthHistoryRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     '/_auth/settings/': {
       id: '/_auth/settings/'
       path: '/'
@@ -255,6 +311,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/nutrition/'
       preLoaderRoute: typeof AuthNutritionIndexRouteImport
       parentRoute: typeof AuthNutritionRoute
+    }
+    '/_auth/settings/profile': {
+      id: '/_auth/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AuthSettingsProfileRouteImport
+      parentRoute: typeof AuthSettingsRoute
+    }
+    '/_auth/settings/privacy': {
+      id: '/_auth/settings/privacy'
+      path: '/privacy'
+      fullPath: '/settings/privacy'
+      preLoaderRoute: typeof AuthSettingsPrivacyRouteImport
+      parentRoute: typeof AuthSettingsRoute
+    }
+    '/_auth/settings/notifications': {
+      id: '/_auth/settings/notifications'
+      path: '/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof AuthSettingsNotificationsRouteImport
+      parentRoute: typeof AuthSettingsRoute
     }
     '/_auth/settings/account': {
       id: '/_auth/settings/account'
@@ -301,11 +378,17 @@ const AuthProgramsRouteWithChildren = AuthProgramsRoute._addFileChildren(
 
 interface AuthSettingsRouteChildren {
   AuthSettingsAccountRoute: typeof AuthSettingsAccountRoute
+  AuthSettingsNotificationsRoute: typeof AuthSettingsNotificationsRoute
+  AuthSettingsPrivacyRoute: typeof AuthSettingsPrivacyRoute
+  AuthSettingsProfileRoute: typeof AuthSettingsProfileRoute
   AuthSettingsIndexRoute: typeof AuthSettingsIndexRoute
 }
 
 const AuthSettingsRouteChildren: AuthSettingsRouteChildren = {
   AuthSettingsAccountRoute: AuthSettingsAccountRoute,
+  AuthSettingsNotificationsRoute: AuthSettingsNotificationsRoute,
+  AuthSettingsPrivacyRoute: AuthSettingsPrivacyRoute,
+  AuthSettingsProfileRoute: AuthSettingsProfileRoute,
   AuthSettingsIndexRoute: AuthSettingsIndexRoute,
 }
 
@@ -314,6 +397,7 @@ const AuthSettingsRouteWithChildren = AuthSettingsRoute._addFileChildren(
 )
 
 interface AuthRouteRouteChildren {
+  AuthHistoryRoute: typeof AuthHistoryRoute
   AuthNutritionRoute: typeof AuthNutritionRouteWithChildren
   AuthPerformanceRoute: typeof AuthPerformanceRoute
   AuthProgramsRoute: typeof AuthProgramsRouteWithChildren
@@ -323,6 +407,7 @@ interface AuthRouteRouteChildren {
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
+  AuthHistoryRoute: AuthHistoryRoute,
   AuthNutritionRoute: AuthNutritionRouteWithChildren,
   AuthPerformanceRoute: AuthPerformanceRoute,
   AuthProgramsRoute: AuthProgramsRouteWithChildren,
