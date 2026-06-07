@@ -1,13 +1,15 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Bell, ChevronRight, LogOut, Moon, Shield, Target, User } from "lucide-react";
+import { Bell, ChevronRight, Download, LogOut, Moon, Shield, Target, User } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 
 export const Route = createFileRoute("/_auth/settings/")({ component: SettingsPage });
 
 function SettingsPage() {
 	const navigate = useNavigate();
 	const { data: session } = authClient.useSession();
+	const { canInstall, triggerInstall } = useInstallPrompt();
 
 	const userName = session?.user.name ?? "Athlete";
 	const userEmail = session?.user.email ?? "";
@@ -90,7 +92,7 @@ function SettingsPage() {
 				<h2 className="px-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
 					Preferences
 				</h2>
-				<div className="overflow-hidden rounded-2xl border border-border bg-card">
+				<div className="divide-y divide-border/50 overflow-hidden rounded-2xl border border-border bg-card">
 					<button
 						type="button"
 						className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-muted/40 active:bg-muted"
@@ -102,6 +104,23 @@ function SettingsPage() {
 						</div>
 						<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
 					</button>
+
+					{canInstall && (
+						<button
+							type="button"
+							onClick={() => void triggerInstall()}
+							className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-muted/40 active:bg-muted"
+						>
+							<Download className="h-5 w-5 shrink-0 text-orange-400" />
+							<div className="flex-1">
+								<p className="text-sm font-medium">Install App</p>
+								<p className="text-xs text-muted-foreground">Add to your home screen</p>
+							</div>
+							<span className="rounded-full bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-400">
+								PWA
+							</span>
+						</button>
+					)}
 				</div>
 			</div>
 

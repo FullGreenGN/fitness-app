@@ -2,9 +2,10 @@ import { Skeleton } from "@fitness-app/ui/components/skeleton";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, Loader2, Sparkles } from "lucide-react";
+import { ChevronLeft, Globe, Loader2, Sparkles } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -57,7 +58,7 @@ function calcMacroPreview(v: Partial<FormValues>) {
 	return { calories, protein, fat, carbs };
 }
 
-// ─── Field components ─────────────────────────────────────────────────────────
+// ─── Field helpers ────────────────────────────────────────────────────────────
 
 function FieldError({ message }: { message?: string }) {
 	if (!message) return null;
@@ -81,6 +82,8 @@ const SELECT_CLS =
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function AccountPage() {
+	const { t, i18n } = useTranslation("common");
+
 	const { data: profile, isPending: profileLoading } = useQuery(
 		trpc.user.getProfile.queryOptions(),
 	);
@@ -95,7 +98,6 @@ function AccountPage() {
 		resolver: zodResolver(schema),
 	});
 
-	// Populate form once profile data arrives
 	useEffect(() => {
 		if (!profile) return;
 		reset({
@@ -115,19 +117,14 @@ function AccountPage() {
 	const { mutate, isPending: saving } = useMutation(
 		trpc.user.updateProfile.mutationOptions({
 			onSuccess: () => {
-				// Refresh anything that depends on settings or body metrics
 				queryClient.invalidateQueries(trpc.user.getProfile.queryFilter());
 				queryClient.invalidateQueries(trpc.user.getSettings.queryFilter());
 				queryClient.invalidateQueries(trpc.performance.getBodyMetrics.queryFilter());
-				toast.success("Profile saved! Macros updated.");
+				toast.success(t("account.saveSuccess"));
 			},
 			onError: (err) => toast.error(err.message),
 		}),
 	);
-
-	function onSubmit(values: FormValues) {
-		mutate(values);
-	}
 
 	return (
 		<div className="min-h-full bg-background">
@@ -141,22 +138,25 @@ function AccountPage() {
 						<ChevronLeft className="h-4 w-4" />
 					</Link>
 					<div>
-						<h1 className="text-base font-bold leading-tight">Goals & Macros</h1>
-						<p className="text-xs text-muted-foreground">Auto-calculated via Mifflin-St Jeor</p>
+						<h1 className="text-base font-bold leading-tight">{t("account.title")}</h1>
+						<p className="text-xs text-muted-foreground">{t("account.subtitle")}</p>
 					</div>
 				</div>
 			</div>
 
+			{/* Profile form */}
 			{profileLoading ? (
 				<FormSkeleton />
 			) : (
-				<form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-4 pb-24">
+				<form
+					onSubmit={handleSubmit((values) => mutate(values))}
+					className="space-y-6 p-4 pb-2"
+				>
 					{/* ── Physical Details ─────────────────────────── */}
-					<Section title="Physical Details">
+					<Section title={t("account.physicalDetails")}>
 						<div className="grid grid-cols-2 gap-4">
-							{/* Age */}
 							<div>
-								<FieldLabel>Age</FieldLabel>
+								<FieldLabel>{t("account.age")}</FieldLabel>
 								<input
 									type="number"
 									placeholder="25"
@@ -165,21 +165,18 @@ function AccountPage() {
 								/>
 								<FieldError message={errors.age?.message} />
 							</div>
-
-							{/* Gender */}
 							<div>
-								<FieldLabel>Gender</FieldLabel>
+								<FieldLabel>{t("account.gender")}</FieldLabel>
 								<select className={SELECT_CLS} {...register("gender")}>
-									<option value="male">Male</option>
-									<option value="female">Female</option>
+									<option value="male">{t("account.male")}</option>
+									<option value="female">{t("account.female")}</option>
 								</select>
 								<FieldError message={errors.gender?.message} />
 							</div>
 						</div>
 
-						{/* Height */}
 						<div>
-							<FieldLabel>Height (cm)</FieldLabel>
+							<FieldLabel>{t("account.height")}</FieldLabel>
 							<input
 								type="number"
 								placeholder="175"
@@ -189,9 +186,8 @@ function AccountPage() {
 							<FieldError message={errors.heightCm?.message} />
 						</div>
 
-						{/* Weight */}
 						<div>
-							<FieldLabel>Current Weight (kg)</FieldLabel>
+							<FieldLabel>{t("account.weight")}</FieldLabel>
 							<input
 								type="number"
 								step="0.1"
@@ -200,30 +196,30 @@ function AccountPage() {
 								{...register("weightKg", { valueAsNumber: true })}
 							/>
 							<p className="mt-1 text-[11px] text-muted-foreground/60">
-								Each save logs a new entry in your weight history.
+								{t("account.weightHint")}
 							</p>
 							<FieldError message={errors.weightKg?.message} />
 						</div>
 					</Section>
 
 					{/* ── Goals ────────────────────────────────────── */}
-					<Section title="Goals">
+					<Section title={t("account.goals")}>
 						<div>
-							<FieldLabel>Fitness Goal</FieldLabel>
+							<FieldLabel>{t("account.goal")}</FieldLabel>
 							<select className={SELECT_CLS} {...register("goal")}>
-								<option value="bulk">Bulk — calorie surplus (+400 kcal)</option>
-								<option value="cut">Cut — calorie deficit (−500 kcal)</option>
-								<option value="maintain">Maintain — at maintenance</option>
+								<option value="bulk">{t("account.goalBulk")}</option>
+								<option value="cut">{t("account.goalCut")}</option>
+								<option value="maintain">{t("account.goalMaintain")}</option>
 							</select>
 							<FieldError message={errors.goal?.message} />
 						</div>
 
 						<div>
-							<FieldLabel>Diet Preference</FieldLabel>
+							<FieldLabel>{t("account.diet")}</FieldLabel>
 							<select className={SELECT_CLS} {...register("dietPreference")}>
-								<option value="standard">Standard</option>
-								<option value="vegan">Vegan</option>
-								<option value="keto">Keto</option>
+								<option value="standard">{t("account.dietStandard")}</option>
+								<option value="vegan">{t("account.dietVegan")}</option>
+								<option value="keto">{t("account.dietKeto")}</option>
 							</select>
 							<FieldError message={errors.dietPreference?.message} />
 						</div>
@@ -235,15 +231,15 @@ function AccountPage() {
 							<div className="flex items-center gap-2">
 								<Sparkles className="h-4 w-4 text-orange-400" />
 								<p className="text-sm font-semibold text-orange-400">
-									Calculated Daily Targets
+									{t("account.macroPreview")}
 								</p>
 							</div>
 							<div className="grid grid-cols-4 gap-2">
 								{[
-									{ label: "Calories", value: macroPreview.calories, unit: "kcal" },
-									{ label: "Protein", value: macroPreview.protein, unit: "g" },
-									{ label: "Carbs", value: macroPreview.carbs, unit: "g" },
-									{ label: "Fat", value: macroPreview.fat, unit: "g" },
+									{ label: t("nutrition.calories"), value: macroPreview.calories, unit: "kcal" },
+									{ label: t("nutrition.protein"), value: macroPreview.protein, unit: "g" },
+									{ label: t("nutrition.carbs"), value: macroPreview.carbs, unit: "g" },
+									{ label: t("nutrition.fat"), value: macroPreview.fat, unit: "g" },
 								].map(({ label, value, unit }) => (
 									<div
 										key={label}
@@ -260,14 +256,14 @@ function AccountPage() {
 								))}
 							</div>
 							<p className="text-center text-[10px] text-muted-foreground/50">
-								Based on TDEE × moderate activity (1.55×)
+								{t("account.macroHint")}
 							</p>
 						</div>
 					) : (
 						<div className="rounded-2xl border border-dashed border-border px-4 py-6 text-center">
 							<Sparkles className="mx-auto h-6 w-6 text-muted-foreground/30" />
 							<p className="mt-2 text-xs text-muted-foreground/60">
-								Fill in all fields to see your calculated macro targets
+								{t("account.macroPlaceholder")}
 							</p>
 						</div>
 					)}
@@ -281,14 +277,43 @@ function AccountPage() {
 						{saving ? (
 							<>
 								<Loader2 className="h-4 w-4 animate-spin" />
-								Saving…
+								{t("account.saving")}
 							</>
 						) : (
-							"Save Profile"
+							t("account.save")
 						)}
 					</button>
 				</form>
 			)}
+
+			{/* ── App Preferences — lives outside the profile form ─────────────────
+			    Language choice is managed entirely by i18next / localStorage and
+			    is NOT sent to the backend, so it must not sit inside <form>. */}
+			<div className="space-y-6 p-4 pb-24">
+				<Section title={t("account.appPreferences")}>
+					<div>
+						<FieldLabel>
+							<span className="flex items-center gap-1.5">
+								<Globe className="h-3 w-3" />
+								{t("account.language")}
+							</span>
+						</FieldLabel>
+						<select
+							className={SELECT_CLS}
+							value={i18n.language}
+							onChange={(e) => void i18n.changeLanguage(e.target.value)}
+						>
+							<option value="en">{t("languages.en")}</option>
+							<option value="fr">{t("languages.fr")}</option>
+						</select>
+						<p className="mt-1.5 text-[11px] text-muted-foreground/50">
+							{i18n.language === "fr"
+								? "La langue est enregistrée localement sur cet appareil."
+								: "Language is saved locally on this device."}
+						</p>
+					</div>
+				</Section>
+			</div>
 		</div>
 	);
 }
@@ -315,8 +340,8 @@ function FormSkeleton() {
 				<div key={h} className="space-y-3 rounded-2xl border border-border bg-card p-4">
 					<Skeleton className="h-3 w-28 rounded-lg" />
 					<div className="grid grid-cols-2 gap-4">
-						<Skeleton className={`h-[42px] rounded-xl`} style={{ height: h / 3 + 28 }} />
-						<Skeleton className={`h-[42px] rounded-xl`} style={{ height: h / 3 + 28 }} />
+						<Skeleton className="rounded-xl" style={{ height: h / 3 + 28 }} />
+						<Skeleton className="rounded-xl" style={{ height: h / 3 + 28 }} />
 					</div>
 					{h > 100 && <Skeleton className="h-[42px] w-full rounded-xl" />}
 				</div>

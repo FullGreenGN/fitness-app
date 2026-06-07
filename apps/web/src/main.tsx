@@ -1,3 +1,6 @@
+// i18n must initialise before any component renders so t() is ready immediately
+import "./i18n";
+
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";

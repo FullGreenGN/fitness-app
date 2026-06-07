@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ChevronRight, Dumbbell, Flame, Play, TrendingUp, Zap } from "lucide-react";
 import { useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   CartesianGrid,
   Line,
@@ -24,17 +25,21 @@ import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_auth/")({ component: DashboardPage });
 
-function formatSessionDate(isoDate: string): string {
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+type TFunc = (key: string) => string;
+
+function formatSessionDate(isoDate: string, t: TFunc, lang: string): string {
   const today = new Date();
-  const d = new Date(`${isoDate}T12:00:00`); // noon to avoid TZ off-by-one
+  const d = new Date(`${isoDate}T12:00:00`);
   const diffDays = Math.round(
     (today.setHours(0, 0, 0, 0) - d.setHours(0, 0, 0, 0)) / 86_400_000,
   );
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
+  if (diffDays === 0) return t("dashboard.today");
+  if (diffDays === 1) return t("dashboard.yesterday");
   if (diffDays < 7)
-    return new Date(`${isoDate}T12:00:00`).toLocaleDateString("en-US", { weekday: "long" });
-  return new Date(`${isoDate}T12:00:00`).toLocaleDateString("en-US", {
+    return new Date(`${isoDate}T12:00:00`).toLocaleDateString(lang, { weekday: "long" });
+  return new Date(`${isoDate}T12:00:00`).toLocaleDateString(lang, {
     month: "short",
     day: "numeric",
   });
@@ -48,13 +53,18 @@ function buildVolumeData(rows: { date: string; volume: number }[] | undefined) {
   return Array.from({ length: 30 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (29 - i));
-    const iso = d.toISOString().split("T")[0]; // "YYYY-MM-DD"
+    const iso = d.toISOString().split("T")[0];
     const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     return { date: label, volume: map[iso] ?? 0 };
   });
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 function DashboardPage() {
+  const { t, i18n } = useTranslation("common");
+  const lang = i18n.language;
+
   const { data: session } = authClient.useSession();
   const { data: programs, isPending: programsLoading } = useQuery(
     trpc.programs.getAll.queryOptions(),
@@ -68,7 +78,7 @@ function DashboardPage() {
   const { data: currentWorkoutRaw } = useQuery(
     trpc.liveWorkout.currentWorkout.queryOptions(),
   );
-  // Read finished list once on mount so it stays stable across re-renders
+
   const finishedRef = useRef<Set<string> | null>(null);
   if (!finishedRef.current) {
     try {
@@ -88,10 +98,11 @@ function DashboardPage() {
   const hasVolume = volumeData.some((d) => d.volume > 0);
 
   const firstName = session?.user.name?.split(" ")[0] ?? "Athlete";
-
   const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const greetingKey =
+    hour < 12 ? "dashboard.greeting.morning"
+    : hour < 17 ? "dashboard.greeting.afternoon"
+    : "dashboard.greeting.evening";
 
   const quickStartProgram = programs?.[0];
   const quickStartWorkout = quickStartProgram?.workouts?.[0];
@@ -100,7 +111,7 @@ function DashboardPage() {
     <div className="space-y-5 px-4 py-6">
       {/* Greeting */}
       <div>
-        <p className="text-sm text-muted-foreground">{greeting}</p>
+        <p className="text-sm text-muted-foreground">{t(greetingKey)}</p>
         <h1 className="text-3xl font-bold tracking-tight">{firstName}</h1>
       </div>
 
@@ -112,15 +123,20 @@ function DashboardPage() {
         <div className="flex items-center justify-between rounded-2xl bg-foreground p-5 text-background shadow-lg transition-transform active:scale-[0.98]">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-widest opacity-60">
-              {quickStartProgram ? quickStartProgram.name : "Quick Start"}
+              {quickStartProgram ? quickStartProgram.name : t("dashboard.quickStart")}
             </p>
             <p className="mt-1 text-xl font-bold">
-              {quickStartWorkout ? quickStartWorkout.name : "Start a Workout"}
+              {quickStartWorkout ? quickStartWorkout.name : t("dashboard.startWorkout")}
             </p>
             <p className="mt-1.5 text-xs opacity-60">
               {quickStartWorkout
-                ? `${quickStartProgram?.workouts.length} workout${quickStartProgram?.workouts.length === 1 ? "" : "s"} in program`
-                : "Go to Programs to get started"}
+                ? t(
+                    quickStartProgram!.workouts.length === 1
+                      ? "dashboard.workoutsInProgram_one"
+                      : "dashboard.workoutsInProgram_other",
+                    { count: quickStartProgram!.workouts.length },
+                  )
+                : t("dashboard.goToPrograms")}
             </p>
           </div>
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-background/15">
@@ -135,7 +151,7 @@ function DashboardPage() {
           <div className="flex items-center justify-between rounded-2xl border border-orange-500/30 bg-orange-500/5 p-4 transition-transform active:scale-[0.98]">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-orange-400">
-                Continue
+                {t("dashboard.continue")}
               </p>
               <p className="mt-1 text-base font-bold">{currentWorkout.workoutName}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">{currentWorkout.programName}</p>
@@ -152,7 +168,7 @@ function DashboardPage() {
         <CardHeader className="pb-0">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <TrendingUp className="h-4 w-4 opacity-70" />
-            Volume — Last 30 Days
+            {t("dashboard.volume")}
           </CardTitle>
         </CardHeader>
         <CardContent className="px-2 pt-3 pb-2">
@@ -160,7 +176,7 @@ function DashboardPage() {
             <Skeleton className="h-[148px] w-full rounded-xl" />
           ) : !hasVolume ? (
             <div className="flex h-[148px] items-center justify-center text-xs text-muted-foreground/50">
-              No workouts logged yet
+              {t("dashboard.noWorkouts")}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={148}>
@@ -199,7 +215,7 @@ function DashboardPage() {
                   }}
                   itemStyle={{ color: "hsl(0 0% 95%)" }}
                   formatter={(value) => [
-                    `${Number(value).toLocaleString()} kg`,
+                    `${Number(value).toLocaleString(lang)} kg`,
                     "Volume",
                   ]}
                   labelStyle={{ opacity: 0.6, marginBottom: 2 }}
@@ -221,7 +237,7 @@ function DashboardPage() {
       {/* Programs list */}
       <div className="space-y-2">
         <h2 className="px-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-          My Programs
+          {t("dashboard.programs")}
         </h2>
         <div className="space-y-2">
           {programsLoading
@@ -238,7 +254,12 @@ function DashboardPage() {
                       <div className="min-w-0 flex-1 space-y-0.5">
                         <p className="truncate text-sm font-semibold">{p.name}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          {p.workouts.length} workout{p.workouts.length === 1 ? "" : "s"}
+                          {t(
+                            p.workouts.length === 1
+                              ? "dashboard.workoutsInProgram_one"
+                              : "dashboard.workoutsInProgram_other",
+                            { count: p.workouts.length },
+                          )}
                         </p>
                       </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -248,7 +269,7 @@ function DashboardPage() {
               ))}
           {!programsLoading && programs?.length === 0 && (
             <p className="px-1 text-xs text-muted-foreground/60">
-              No programs yet — create one in the Programs tab.
+              {t("dashboard.noPrograms")}
             </p>
           )}
         </div>
@@ -257,7 +278,7 @@ function DashboardPage() {
       {/* Workout history */}
       <div className="space-y-2 pb-6">
         <h2 className="px-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-          History
+          {t("dashboard.history")}
         </h2>
 
         {historyLoading ? (
@@ -269,10 +290,8 @@ function DashboardPage() {
         ) : !history?.length ? (
           <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center">
             <Flame className="mx-auto h-7 w-7 text-muted-foreground/30" />
-            <p className="mt-2 text-sm text-muted-foreground">No workouts logged yet</p>
-            <p className="text-xs text-muted-foreground/50">
-              Complete your first session to see history here.
-            </p>
+            <p className="mt-2 text-sm text-muted-foreground">{t("dashboard.noWorkouts")}</p>
+            <p className="text-xs text-muted-foreground/50">{t("dashboard.noHistoryHint")}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -287,7 +306,9 @@ function DashboardPage() {
                     {/* Date badge */}
                     <div className="flex w-11 shrink-0 flex-col items-center justify-center rounded-xl bg-muted py-1.5">
                       <span className="text-[10px] font-semibold uppercase text-muted-foreground">
-                        {new Date(`${session.date}T12:00:00`).toLocaleDateString("en-US", { month: "short" })}
+                        {new Date(`${session.date}T12:00:00`).toLocaleDateString(lang, {
+                          month: "short",
+                        })}
                       </span>
                       <span className="text-lg font-bold leading-tight tabular-nums">
                         {new Date(`${session.date}T12:00:00`).getDate()}
@@ -299,7 +320,7 @@ function DashboardPage() {
                       <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
                         {session.programName}
                         <span className="mx-1.5 opacity-30">·</span>
-                        {formatSessionDate(session.date)}
+                        {formatSessionDate(session.date, t, lang)}
                       </p>
                       <div className="mt-1 flex items-center gap-3">
                         <span className="text-[10px] tabular-nums text-muted-foreground/70">
@@ -311,7 +332,7 @@ function DashboardPage() {
                         </span>
                         <span className="text-[10px] text-muted-foreground/30">·</span>
                         <span className="text-[10px] tabular-nums text-orange-400">
-                          {session.volume.toLocaleString()} kg
+                          {session.volume.toLocaleString(lang)} kg
                         </span>
                       </div>
                     </div>

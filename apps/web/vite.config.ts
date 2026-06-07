@@ -20,13 +20,64 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      manifest: {
-        name: "fitness-app",
-        short_name: "fitness-app",
-        description: "fitness-app - PWA Application",
-        theme_color: "#0c0c0c",
+
+      // Pre-cache all build output + static assets
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+        // Allow the SW to cache API responses from the same origin
+        runtimeCaching: [
+          {
+            urlPattern: /^\/trpc\/.*/,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "trpc-cache",
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+        ],
       },
-      pwaAssets: { disabled: false, config: true },
+
+      includeAssets: ["logo.png", "icon-192.png", "icon-512.png"],
+
+      manifest: {
+        name: "GymTracker",
+        short_name: "GymTracker",
+        description: "Workout & Nutrition Tracker — offline-first",
+        theme_color: "#0f172a",
+        background_color: "#0f172a",
+        display: "standalone",
+        orientation: "portrait-primary",
+        scope: "/",
+        start_url: "/",
+        icons: [
+          {
+            src: "icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
+          },
+          {
+            src: "icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
+      },
+
+      // Keep the SW active in dev so you can test install flow in Chrome
       devOptions: { enabled: true },
     }),
   ],
