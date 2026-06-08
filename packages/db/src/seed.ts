@@ -192,15 +192,87 @@ const exercises = [
 	},
 ];
 
+// Wger returns broad category names (e.g. "Back"); map them to the lowercase
+// muscle identifiers that react-body-highlighter expects.
+const WGER_CATEGORY_TO_MUSCLE: Record<string, string> = {
+	Abs: "abs",
+	Arms: "biceps",
+	Back: "upper-back",
+	Calves: "calves",
+	Chest: "chest",
+	Legs: "quadriceps",
+	Shoulders: "front-deltoids",
+};
+
+interface WgerCategory {
+	id: number;
+	name: string;
+}
+
+interface WgerTranslation {
+	language: number;
+	name: string;
+}
+
+// exerciseinfo stores display names inside translations[], not on item.name
+interface WgerExerciseInfo {
+	category: WgerCategory | null;
+	translations: WgerTranslation[];
+}
+
+interface WgerResponse {
+	count: number;
+	next: string | null;
+	results: WgerExerciseInfo[];
+}
+
+async function seedExercises(): Promise<void> {
+	console.log("Fetching exercises from Wger API…");
+
+	const res = await fetch(
+		"https://wger.de/api/v2/exerciseinfo/?language=2&limit=150",
+	);
+	if (!res.ok) throw new Error(`Wger API returned ${res.status}`);
+	const data = (await res.json()) as WgerResponse;
+
+	const mapped = data.results
+		.map((item) => ({
+			name: item.translations.find((t) => t.language === 2)?.name?.trim() ?? "",
+			targetMuscle:
+				WGER_CATEGORY_TO_MUSCLE[item.category?.name ?? ""] ?? "Full Body",
+			imageUrl: null as string | null,
+			youtubeUrl: null as string | null,
+			createdById: null as string | null,
+		}))
+		.filter((item) => item.name.length > 0);
+
+	console.log(
+		`Inserting ${mapped.length} Wger exercises (skipping conflicts)…`,
+	);
+
+	if (mapped.length === 0) {
+		console.log("Nothing to insert.");
+		return;
+	}
+
+	await db.insert(exerciseDictionary).values(mapped).onConflictDoNothing();
+
+	console.log(`Wger seed complete.`);
+}
+
 async function seed() {
-	console.log(`Seeding ${exercises.length} exercises…`);
+	console.log(`Seeding ${exercises.length} curated exercises…`);
 
 	await db
 		.insert(exerciseDictionary)
 		.values(exercises)
 		.onConflictDoNothing({ target: exerciseDictionary.name });
 
-	console.log("Done.");
+	console.log("Curated exercises done.");
+
+	await seedExercises();
+
+	console.log("All done.");
 	process.exit(0);
 }
 

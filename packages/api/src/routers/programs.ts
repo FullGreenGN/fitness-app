@@ -25,6 +25,7 @@ async function cloneProgramForUser(
 				orderIndex: number;
 				targetSets: number;
 				targetReps: number;
+				restSeconds: number;
 			}>;
 		}>;
 	},
@@ -49,6 +50,7 @@ async function cloneProgramForUser(
 					orderIndex: i,
 					targetSets: ex.targetSets,
 					targetReps: ex.targetReps,
+					restSeconds: ex.restSeconds,
 				})),
 			);
 		}
@@ -234,6 +236,42 @@ export const programsRouter = router({
 			exerciseCount: p.workouts.reduce((s, w) => s + w.exercises.length, 0),
 		})),
 	),
+
+	updateExercise: protectedProcedure
+		.input(
+			z.object({
+				exerciseId: z.string().uuid(),
+				targetSets: z.number().int().min(1).optional(),
+				targetReps: z.number().int().min(1).optional(),
+				restSeconds: z.number().int().min(0).max(600).optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const row = await db
+				.select({ id: exercises.id })
+				.from(exercises)
+				.innerJoin(workouts, eq(exercises.workoutId, workouts.id))
+				.innerJoin(programs, eq(workouts.programId, programs.id))
+				.where(and(eq(exercises.id, input.exerciseId), eq(programs.userId, ctx.user.id)))
+				.limit(1);
+
+			if (row.length === 0) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Exercise not found" });
+			}
+
+			const patch: Partial<typeof exercises.$inferInsert> = {};
+			if (input.targetSets !== undefined) patch.targetSets = input.targetSets;
+			if (input.targetReps !== undefined) patch.targetReps = input.targetReps;
+			if (input.restSeconds !== undefined) patch.restSeconds = input.restSeconds;
+
+			const [updated] = await db
+				.update(exercises)
+				.set(patch)
+				.where(eq(exercises.id, input.exerciseId))
+				.returning();
+
+			return updated;
+		}),
 
 	importPreset: protectedProcedure
 		.input(z.object({ presetId: z.string() }))

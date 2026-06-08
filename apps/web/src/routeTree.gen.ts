@@ -11,13 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
-import { Route as AuthIndexRouteImport } from './routes/_auth/index'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthWorkoutRouteImport } from './routes/_auth/workout'
 import { Route as AuthSettingsRouteImport } from './routes/_auth/settings'
 import { Route as AuthProgramsRouteImport } from './routes/_auth/programs'
 import { Route as AuthPerformanceRouteImport } from './routes/_auth/performance'
 import { Route as AuthNutritionRouteImport } from './routes/_auth/nutrition'
 import { Route as AuthHistoryRouteImport } from './routes/_auth/history'
+import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
 import { Route as AuthSettingsIndexRouteImport } from './routes/_auth/settings/index'
 import { Route as AuthProgramsIndexRouteImport } from './routes/_auth/programs/index'
 import { Route as AuthNutritionIndexRouteImport } from './routes/_auth/nutrition/index'
@@ -36,10 +37,10 @@ const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthIndexRoute = AuthIndexRouteImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthWorkoutRoute = AuthWorkoutRouteImport.update({
   id: '/workout',
@@ -69,6 +70,11 @@ const AuthNutritionRoute = AuthNutritionRouteImport.update({
 const AuthHistoryRoute = AuthHistoryRouteImport.update({
   id: '/history',
   path: '/history',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthDashboardRoute = AuthDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthRouteRoute,
 } as any)
 const AuthSettingsIndexRoute = AuthSettingsIndexRouteImport.update({
@@ -114,8 +120,9 @@ const AuthProgramsProgramIdRoute = AuthProgramsProgramIdRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthIndexRoute
+  '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/dashboard': typeof AuthDashboardRoute
   '/history': typeof AuthHistoryRoute
   '/nutrition': typeof AuthNutritionRouteWithChildren
   '/performance': typeof AuthPerformanceRoute
@@ -132,11 +139,12 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof AuthSettingsIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/dashboard': typeof AuthDashboardRoute
   '/history': typeof AuthHistoryRoute
   '/performance': typeof AuthPerformanceRoute
   '/workout': typeof AuthWorkoutRoute
-  '/': typeof AuthIndexRoute
   '/programs/$programId': typeof AuthProgramsProgramIdRoute
   '/settings/account': typeof AuthSettingsAccountRoute
   '/settings/notifications': typeof AuthSettingsNotificationsRoute
@@ -148,15 +156,16 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_auth': typeof AuthRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/_auth/dashboard': typeof AuthDashboardRoute
   '/_auth/history': typeof AuthHistoryRoute
   '/_auth/nutrition': typeof AuthNutritionRouteWithChildren
   '/_auth/performance': typeof AuthPerformanceRoute
   '/_auth/programs': typeof AuthProgramsRouteWithChildren
   '/_auth/settings': typeof AuthSettingsRouteWithChildren
   '/_auth/workout': typeof AuthWorkoutRoute
-  '/_auth/': typeof AuthIndexRoute
   '/_auth/programs/$programId': typeof AuthProgramsProgramIdRoute
   '/_auth/settings/account': typeof AuthSettingsAccountRoute
   '/_auth/settings/notifications': typeof AuthSettingsNotificationsRoute
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/dashboard'
     | '/history'
     | '/nutrition'
     | '/performance'
@@ -187,11 +197,12 @@ export interface FileRouteTypes {
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/login'
+    | '/dashboard'
     | '/history'
     | '/performance'
     | '/workout'
-    | '/'
     | '/programs/$programId'
     | '/settings/account'
     | '/settings/notifications'
@@ -202,15 +213,16 @@ export interface FileRouteTypes {
     | '/settings'
   id:
     | '__root__'
+    | '/'
     | '/_auth'
     | '/login'
+    | '/_auth/dashboard'
     | '/_auth/history'
     | '/_auth/nutrition'
     | '/_auth/performance'
     | '/_auth/programs'
     | '/_auth/settings'
     | '/_auth/workout'
-    | '/_auth/'
     | '/_auth/programs/$programId'
     | '/_auth/settings/account'
     | '/_auth/settings/notifications'
@@ -222,6 +234,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
@@ -242,12 +255,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_auth/': {
-      id: '/_auth/'
+    '/': {
+      id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AuthIndexRouteImport
-      parentRoute: typeof AuthRouteRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_auth/workout': {
       id: '/_auth/workout'
@@ -289,6 +302,13 @@ declare module '@tanstack/react-router' {
       path: '/history'
       fullPath: '/history'
       preLoaderRoute: typeof AuthHistoryRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/dashboard': {
+      id: '/_auth/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthDashboardRouteImport
       parentRoute: typeof AuthRouteRoute
     }
     '/_auth/settings/': {
@@ -397,23 +417,23 @@ const AuthSettingsRouteWithChildren = AuthSettingsRoute._addFileChildren(
 )
 
 interface AuthRouteRouteChildren {
+  AuthDashboardRoute: typeof AuthDashboardRoute
   AuthHistoryRoute: typeof AuthHistoryRoute
   AuthNutritionRoute: typeof AuthNutritionRouteWithChildren
   AuthPerformanceRoute: typeof AuthPerformanceRoute
   AuthProgramsRoute: typeof AuthProgramsRouteWithChildren
   AuthSettingsRoute: typeof AuthSettingsRouteWithChildren
   AuthWorkoutRoute: typeof AuthWorkoutRoute
-  AuthIndexRoute: typeof AuthIndexRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
+  AuthDashboardRoute: AuthDashboardRoute,
   AuthHistoryRoute: AuthHistoryRoute,
   AuthNutritionRoute: AuthNutritionRouteWithChildren,
   AuthPerformanceRoute: AuthPerformanceRoute,
   AuthProgramsRoute: AuthProgramsRouteWithChildren,
   AuthSettingsRoute: AuthSettingsRouteWithChildren,
   AuthWorkoutRoute: AuthWorkoutRoute,
-  AuthIndexRoute: AuthIndexRoute,
 }
 
 const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
@@ -421,6 +441,7 @@ const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AuthRouteRoute: AuthRouteRouteWithChildren,
   LoginRoute: LoginRoute,
 }

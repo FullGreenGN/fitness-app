@@ -2,6 +2,7 @@ import { Link, Outlet, createFileRoute, redirect, useRouterState } from "@tansta
 import { Activity, Apple, Dumbbell, Home, Settings, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { RestTimer } from "@/components/RestTimer";
 import { authClient } from "@/lib/auth-client";
 
 // Redirect unauthenticated users before any protected route renders.
@@ -28,7 +29,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/", label: "Home", icon: Home, exact: true },
+  { to: "/dashboard", label: "Home", icon: Home, exact: true },
   { to: "/programs", label: "Programs", icon: Dumbbell, exact: false },
   { to: "/nutrition", label: "Nutrition", icon: Apple, exact: false },
   { to: "/performance", label: "Progress", icon: Activity, exact: false },
@@ -80,6 +81,7 @@ function AuthLayout() {
       <main className="flex-1 overflow-y-auto pb-16">
         <Outlet />
       </main>
+      <RestTimer />
       <BottomNav />
     </div>
   );

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { AddExerciseModal } from "@/components/AddExerciseModal";
+import { useRestTimer } from "@/store/useRestTimer";
 import { queryClient, trpc } from "@/utils/trpc";
 
 // ─── Route ────────────────────────────────────────────────────────────────────
@@ -114,6 +115,8 @@ function WorkoutSession({ workoutId }: { workoutId: string }) {
     trpc.liveWorkout.getWorkout.queryOptions({ workoutId }),
   );
 
+  const startTimer = useRestTimer((s) => s.startTimer);
+
   const [pending, setPending] = useState<Record<string, PendingSet[]>>({});
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [showFinish, setShowFinish] = useState(false);
@@ -133,7 +136,9 @@ function WorkoutSession({ workoutId }: { workoutId: string }) {
 
   const logSetMutation = useMutation(
     trpc.liveWorkout.logSet.mutationOptions({
-      onSuccess: () => {
+      onSuccess: (_data, variables) => {
+        const ex = workout?.exercises.find((e) => e.id === variables.exerciseId);
+        startTimer(ex?.restSeconds ?? 90);
         queryClient.invalidateQueries(trpc.liveWorkout.getWorkout.queryFilter({ workoutId }));
       },
       onError: (err) => { toast.error(err.message); },
@@ -351,6 +356,7 @@ interface DbExercise {
   id: string;
   targetSets: number;
   targetReps: number;
+  restSeconds: number;
   dictionary: {
     name: string;
     imageUrl: string | null;

@@ -16,6 +16,8 @@ export default defineConfig({
     tanstackRouter({
       target: "react",
       autoCodeSplitting: true,
+      // Exclude the _auth/index stub — public routes/index.tsx owns "/"
+      routeFileIgnorePattern: "_auth/index",
     }),
     react(),
     VitePWA({

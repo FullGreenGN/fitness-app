@@ -16,6 +16,7 @@ export const exercises = pgTable("exercises", {
     orderIndex: integer("order_index").notNull(),
     targetSets: integer("target_sets").default(3).notNull(),
     targetReps: integer("target_reps").default(10).notNull(),
+    restSeconds: integer("rest_seconds").default(90).notNull(),
 });
 
 export const exercisesRelations = relations(exercises, ({ one, many }) => ({

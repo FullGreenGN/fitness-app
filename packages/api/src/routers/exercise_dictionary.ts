@@ -57,6 +57,7 @@ export const exerciseDictionaryRouter = router({
         dictionaryId: z.string().uuid(),
         targetSets: z.number().int().min(1).default(3),
         targetReps: z.number().int().min(1).default(10),
+        restSeconds: z.number().int().min(0).max(600).default(90),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -84,6 +85,7 @@ export const exerciseDictionaryRouter = router({
           orderIndex: (lastExercise?.orderIndex ?? -1) + 1,
           targetSets: input.targetSets,
           targetReps: input.targetReps,
+          restSeconds: input.restSeconds,
         })
         .returning();
 

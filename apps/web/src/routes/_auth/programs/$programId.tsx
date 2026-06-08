@@ -2,7 +2,7 @@ import { Card, CardContent } from "@fitness-app/ui/components/card";
 import { Skeleton } from "@fitness-app/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, ChevronLeft, CirclePlay, Dumbbell, Play, Plus, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, CirclePlay, Dumbbell, Minus, Play, Plus, Timer, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -25,6 +25,15 @@ function ProgramBuilderPage() {
   const [addExerciseWorkoutId, setAddExerciseWorkoutId] = useState<string | null>(null);
   const [showCreateWorkout, setShowCreateWorkout] = useState(false);
   const [workoutName, setWorkoutName] = useState("");
+
+  const updateExerciseMutation = useMutation(
+    trpc.programs.updateExercise.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries(trpc.programs.getOne.queryFilter({ id: programId }));
+      },
+      onError: (err) => { toast.error(err.message); },
+    }),
+  );
 
   const createWorkoutMutation = useMutation(
     trpc.programs.createWorkout.mutationOptions({
@@ -94,6 +103,9 @@ function ProgramBuilderPage() {
               key={workout.id}
               workout={workout}
               onAddExercise={() => setAddExerciseWorkoutId(workout.id)}
+              onUpdateRest={(exerciseId, restSeconds) =>
+                updateExerciseMutation.mutate({ exerciseId, restSeconds })
+              }
             />
           ))
         )}
@@ -168,6 +180,7 @@ interface WorkoutCardProps {
       id: string;
       targetSets: number;
       targetReps: number;
+      restSeconds: number;
       dictionary: {
         name: string;
         targetMuscle: string | null;
@@ -177,9 +190,10 @@ interface WorkoutCardProps {
     }>;
   };
   onAddExercise: () => void;
+  onUpdateRest: (exerciseId: string, restSeconds: number) => void;
 }
 
-function WorkoutCard({ workout, onAddExercise }: WorkoutCardProps) {
+function WorkoutCard({ workout, onAddExercise, onUpdateRest }: WorkoutCardProps) {
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
 
   function toggle(id: string) {
@@ -254,10 +268,18 @@ function WorkoutCard({ workout, onAddExercise }: WorkoutCardProps) {
                       )}
                     </div>
 
-                    <div className="shrink-0 rounded-lg bg-muted px-2.5 py-1 text-center">
-                      <span className="text-xs font-bold tabular-nums">{exercise.targetSets}</span>
-                      <span className="text-[10px] text-muted-foreground"> × </span>
-                      <span className="text-xs font-bold tabular-nums">{exercise.targetReps}</span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <div className="rounded-lg bg-muted px-2.5 py-1 text-center">
+                        <span className="text-xs font-bold tabular-nums">{exercise.targetSets}</span>
+                        <span className="text-[10px] text-muted-foreground"> × </span>
+                        <span className="text-xs font-bold tabular-nums">{exercise.targetReps}</span>
+                      </div>
+                      <div className="flex items-center gap-1 rounded-lg bg-muted px-2 py-1">
+                        <Timer className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">
+                          {exercise.restSeconds}s
+                        </span>
+                      </div>
                     </div>
 
                     <ChevronDown
@@ -286,6 +308,37 @@ function WorkoutCard({ workout, onAddExercise }: WorkoutCardProps) {
                           Watch Tutorial on YouTube
                         </a>
                       )}
+
+                      {/* Rest timer stepper */}
+                      <div className="flex items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <Timer className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-xs font-semibold">Rest Timer</p>
+                            <p className="text-[10px] text-muted-foreground">seconds between sets</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onUpdateRest(exercise.id, Math.max(0, exercise.restSeconds - 15))}
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground active:scale-90"
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="w-12 text-center text-sm font-bold tabular-nums">
+                            {exercise.restSeconds}s
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => onUpdateRest(exercise.id, Math.min(600, exercise.restSeconds + 15))}
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground active:scale-90"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
                       {!dict?.imageUrl && !dict?.youtubeUrl && (
                         <p className="text-center text-xs text-muted-foreground/40">
                           No media available

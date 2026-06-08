@@ -27,40 +27,72 @@ type DictEntry = {
 interface SetsRepsProps {
   sets: string;
   reps: string;
+  rest: string;
   onSetsChange: (v: string) => void;
   onRepsChange: (v: string) => void;
+  onRestChange: (v: string) => void;
 }
 
-function SetsRepsFields({ sets, reps, onSetsChange, onRepsChange }: SetsRepsProps) {
+const REST_PRESETS = [30, 60, 90, 120, 180];
+
+function SetsRepsFields({ sets, reps, rest, onSetsChange, onRepsChange, onRestChange }: SetsRepsProps) {
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <div className="space-y-1.5">
-        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Target Sets
-        </label>
-        <input
-          value={sets}
-          onChange={(e) => onSetsChange(e.target.value)}
-          inputMode="numeric"
-          min={1}
-          max={20}
-          placeholder="3"
-          className="w-full rounded-xl border border-border bg-input/60 px-3 py-2.5 text-center text-sm font-bold outline-none focus:ring-1 focus:ring-ring/60"
-        />
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Target Sets
+          </label>
+          <input
+            value={sets}
+            onChange={(e) => onSetsChange(e.target.value)}
+            inputMode="numeric"
+            min={1}
+            max={20}
+            placeholder="3"
+            className="w-full rounded-xl border border-border bg-input/60 px-3 py-2.5 text-center text-sm font-bold outline-none focus:ring-1 focus:ring-ring/60"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Target Reps
+          </label>
+          <input
+            value={reps}
+            onChange={(e) => onRepsChange(e.target.value)}
+            inputMode="numeric"
+            min={1}
+            max={100}
+            placeholder="10"
+            className="w-full rounded-xl border border-border bg-input/60 px-3 py-2.5 text-center text-sm font-bold outline-none focus:ring-1 focus:ring-ring/60"
+          />
+        </div>
       </div>
+
       <div className="space-y-1.5">
         <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Target Reps
+          Rest Between Sets
         </label>
-        <input
-          value={reps}
-          onChange={(e) => onRepsChange(e.target.value)}
-          inputMode="numeric"
-          min={1}
-          max={100}
-          placeholder="10"
-          className="w-full rounded-xl border border-border bg-input/60 px-3 py-2.5 text-center text-sm font-bold outline-none focus:ring-1 focus:ring-ring/60"
-        />
+        <div className="flex gap-1.5">
+          {REST_PRESETS.map((s) => {
+            const label = s >= 60 ? `${s / 60}m${s % 60 ? `${s % 60}s` : ""}` : `${s}s`;
+            const active = rest === String(s);
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onRestChange(String(s))}
+                className={`flex-1 rounded-xl py-2 text-xs font-semibold transition-colors ${
+                  active
+                    ? "bg-foreground text-background"
+                    : "bg-input/60 text-muted-foreground hover:bg-input hover:text-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -153,6 +185,7 @@ function SearchTab({
   const [selected, setSelected] = useState<DictEntry | null>(null);
   const [targetSets, setTargetSets] = useState("3");
   const [targetReps, setTargetReps] = useState("10");
+  const [restSeconds, setRestSeconds] = useState("90");
 
   function handleInput(value: string) {
     setInput(value);
@@ -164,6 +197,7 @@ function SearchTab({
     setSelected(entry);
     setTargetSets("3");
     setTargetReps("10");
+    setRestSeconds("90");
   }
 
   const { data: results, isFetching } = useQuery({
@@ -190,11 +224,18 @@ function SearchTab({
     if (!selected) return;
     const sets = parseInt(targetSets, 10);
     const reps = parseInt(targetReps, 10);
+    const rest = parseInt(restSeconds, 10);
     if (isNaN(sets) || isNaN(reps) || sets < 1 || reps < 1) {
       toast.error("Enter valid sets and reps");
       return;
     }
-    addMutation.mutate({ workoutId, dictionaryId: selected.id, targetSets: sets, targetReps: reps });
+    addMutation.mutate({
+      workoutId,
+      dictionaryId: selected.id,
+      targetSets: sets,
+      targetReps: reps,
+      restSeconds: isNaN(rest) ? 90 : rest,
+    });
   }
 
   // Confirmation panel when an exercise is selected
@@ -236,8 +277,10 @@ function SearchTab({
         <SetsRepsFields
           sets={targetSets}
           reps={targetReps}
+          rest={restSeconds}
           onSetsChange={setTargetSets}
           onRepsChange={setTargetReps}
+          onRestChange={setRestSeconds}
         />
 
         <button
@@ -343,6 +386,7 @@ function CreateTab({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [targetSets, setTargetSets] = useState("3");
   const [targetReps, setTargetReps] = useState("10");
+  const [restSeconds, setRestSeconds] = useState("90");
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -366,11 +410,13 @@ function CreateTab({
       onSuccess: (entry) => {
         const sets = parseInt(targetSets, 10);
         const reps = parseInt(targetReps, 10);
+        const rest = parseInt(restSeconds, 10);
         addMutation.mutate({
           workoutId,
           dictionaryId: entry.id,
           targetSets: isNaN(sets) ? 3 : sets,
           targetReps: isNaN(reps) ? 10 : reps,
+          restSeconds: isNaN(rest) ? 90 : rest,
         });
       },
       onError: (err) => { toast.error(err.message); },
@@ -438,12 +484,14 @@ function CreateTab({
         />
       </div>
 
-      {/* Sets × Reps */}
+      {/* Sets × Reps × Rest */}
       <SetsRepsFields
         sets={targetSets}
         reps={targetReps}
+        rest={restSeconds}
         onSetsChange={setTargetSets}
         onRepsChange={setTargetReps}
+        onRestChange={setRestSeconds}
       />
 
       {/* Image upload */}
