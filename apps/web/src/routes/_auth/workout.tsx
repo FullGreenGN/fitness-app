@@ -3,7 +3,7 @@ import { Input } from "@fitness-app/ui/components/input";
 import { Skeleton } from "@fitness-app/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Check, Dumbbell, Flame, Plus, Trophy, X } from "lucide-react";
+import { Check, Dumbbell, Flame, Medal, Plus, Trophy, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -107,6 +107,14 @@ interface PendingSet {
   reps: string;
 }
 
+interface FinishSummary {
+  workoutName: string;
+  totalVolume: number;
+  totalSets: number;
+  exerciseCount: number;
+  prs: Array<{ exerciseName: string; newWeight: number; newReps: number; prevWeight: number | null }>;
+}
+
 // ─── Session component (always has a workoutId) ───────────────────────────────
 
 function WorkoutSession({ workoutId }: { workoutId: string }) {
@@ -120,6 +128,18 @@ function WorkoutSession({ workoutId }: { workoutId: string }) {
   const [pending, setPending] = useState<Record<string, PendingSet[]>>({});
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [showFinish, setShowFinish] = useState(false);
+  const [summary, setSummary] = useState<FinishSummary | null>(null);
+
+  const finishWorkoutMutation = useMutation(
+    trpc.liveWorkout.finishWorkout.mutationOptions({
+      onSuccess: (data) => {
+        markWorkoutFinished(workoutId);
+        setSummary(data);
+        setShowFinish(false);
+      },
+      onError: (err) => { toast.error(err.message); },
+    }),
+  );
 
   // Seed pending sets on load: fill up to targetSets, at least 1
   useEffect(() => {
@@ -289,6 +309,14 @@ function WorkoutSession({ workoutId }: { workoutId: string }) {
         onClose={() => setAddExerciseOpen(false)}
       />
 
+      {summary && (
+        <WorkoutSummary
+          summary={summary}
+          elapsed={elapsed}
+          onDone={() => navigate({ to: "/" })}
+        />
+      )}
+
       {/* ── Finish confirmation sheet ──────────────────────────────────────── */}
       {showFinish && (
         <>
@@ -328,18 +356,107 @@ function WorkoutSession({ workoutId }: { workoutId: string }) {
 
             <button
               type="button"
-              onClick={() => {
-                markWorkoutFinished(workoutId);
-                navigate({ to: "/" });
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-sm font-semibold text-background transition-transform active:scale-[0.98]"
+              onClick={() => finishWorkoutMutation.mutate({ workoutId })}
+              disabled={finishWorkoutMutation.isPending}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-sm font-semibold text-background transition-transform active:scale-[0.98] disabled:opacity-60"
             >
               <Trophy className="h-4 w-4" />
-              Finish Workout
+              {finishWorkoutMutation.isPending ? "Saving…" : "Finish Workout"}
             </button>
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ─── WorkoutSummary overlay ───────────────────────────────────────────────────
+
+function WorkoutSummary({
+  summary,
+  elapsed,
+  onDone,
+}: {
+  summary: FinishSummary;
+  elapsed: string;
+  onDone: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[70] flex flex-col overflow-y-auto bg-background">
+      {/* Celebration header */}
+      <div className="flex flex-col items-center px-6 pb-8 pt-16 text-center">
+        <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-foreground">
+          <Trophy className="h-10 w-10 text-background" />
+        </div>
+        <h1 className="text-2xl font-bold">Workout Complete!</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{summary.workoutName}</p>
+      </div>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 gap-3 px-4">
+        <SummaryStatCard label="Total Volume" value={`${summary.totalVolume.toLocaleString()} kg`} />
+        <SummaryStatCard label="Time" value={elapsed} />
+        <SummaryStatCard label="Sets" value={String(summary.totalSets)} />
+        <SummaryStatCard label="Exercises" value={String(summary.exerciseCount)} />
+      </div>
+
+      {/* Personal records */}
+      {summary.prs.length > 0 && (
+        <div className="mt-4 px-4">
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Medal className="h-4 w-4" />
+              <span className="text-sm font-bold">
+                {summary.prs.length} new PR{summary.prs.length > 1 ? "s" : ""} this workout
+              </span>
+            </div>
+            <div className="space-y-2">
+              {summary.prs.map((pr) => (
+                <div
+                  key={pr.exerciseName}
+                  className="flex items-center justify-between rounded-xl bg-muted px-3 py-2.5"
+                >
+                  <span className="text-sm font-semibold">{pr.exerciseName}</span>
+                  <div className="text-right">
+                    <span className="text-sm font-bold">
+                      {pr.newWeight} kg × {pr.newReps}
+                    </span>
+                    {pr.prevWeight !== null ? (
+                      <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                        prev. {pr.prevWeight} kg
+                      </span>
+                    ) : (
+                      <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                        first time!
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Done button */}
+      <div className="mt-auto p-4 pt-6">
+        <button
+          type="button"
+          onClick={onDone}
+          className="flex w-full items-center justify-center rounded-xl bg-foreground py-3 text-sm font-semibold text-background transition-transform active:scale-[0.98]"
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SummaryStatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-2xl bg-muted py-5">
+      <span className="text-2xl font-bold tabular-nums">{value}</span>
+      <span className="mt-0.5 text-[11px] text-muted-foreground">{label}</span>
     </div>
   );
 }

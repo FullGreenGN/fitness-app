@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { and, eq, isNotNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@fitness-app/db";
@@ -171,6 +171,79 @@ export const liveWorkoutRouter = router({
         .returning();
 
       return set;
+    }),
+
+  /**
+   * Called when the user taps "Finish Workout". Returns summary stats and
+   * any personal records achieved during the session.
+   * A PR is when the best weight lifted for an exercise this workout exceeds
+   * the all-time best from every other workout.
+   */
+  finishWorkout: protectedProcedure
+    .input(z.object({ workoutId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const workout = await db.query.workouts.findFirst({
+        where: eq(workouts.id, input.workoutId),
+        with: {
+          program: { columns: { userId: true } },
+          exercises: {
+            with: {
+              dictionary: { columns: { id: true, name: true } },
+              sets: true,
+            },
+          },
+        },
+      });
+
+      if (!workout || workout.program.userId !== ctx.user.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Workout not found" });
+      }
+
+      const allSets = workout.exercises.flatMap((ex) => ex.sets);
+      const totalVolume = Math.round(allSets.reduce((sum, s) => sum + s.weight * s.reps, 0));
+      const totalSets = allSets.length;
+      const exerciseCount = workout.exercises.filter((ex) => ex.sets.length > 0).length;
+
+      const prs: Array<{
+        exerciseName: string;
+        newWeight: number;
+        newReps: number;
+        prevWeight: number | null;
+      }> = [];
+
+      for (const exercise of workout.exercises) {
+        if (exercise.sets.length === 0) continue;
+
+        const bestCurrent = exercise.sets.reduce((best, s) => {
+          if (s.weight > best.weight) return s;
+          if (s.weight === best.weight && s.reps > best.reps) return s;
+          return best;
+        });
+
+        const [historical] = await db
+          .select({ maxWeight: sql<number>`MAX(${sets.weight})` })
+          .from(sets)
+          .innerJoin(exercises, eq(sets.exerciseId, exercises.id))
+          .where(
+            and(
+              eq(exercises.dictionaryId, exercise.dictionaryId),
+              ne(exercises.workoutId, input.workoutId),
+            ),
+          );
+
+        const prevWeight = historical?.maxWeight ?? null;
+
+        if (prevWeight === null || bestCurrent.weight > prevWeight) {
+          prs.push({
+            exerciseName: exercise.dictionary.name,
+            newWeight: bestCurrent.weight,
+            newReps: bestCurrent.reps,
+            prevWeight,
+          });
+        }
+      }
+
+      return { workoutName: workout.name, totalVolume, totalSets, exerciseCount, prs };
     }),
 
   /**
